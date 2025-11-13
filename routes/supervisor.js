@@ -239,7 +239,7 @@ module.exports = (JWT_SECRET = "mydefaultsecret") => {
       console.log("✅ Default admin created (username: admin, password: 123)");
     }
   };
-  ensureAdminExists();
+  // ensureAdminExists();
 
   // ---------------- LOGIN (Admin or Supervisor) ----------------
   router.post("/login", async (req, res) => {
