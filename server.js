@@ -141,10 +141,11 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-const JWT_SECRET = "your_secret_key_here";
-
-// ✅ MongoDB Atlas Connection String
+// Load environment variables
+const PORT = process.env.PORT || 3000;
 const MONGO_URI = process.env.MONGO_URI;
+const JWT_SECRET = process.env.JWT_SECRET || "your_secret_key_here";
+
 // =============================
 // 🔌 MongoDB Connection
 // =============================
@@ -160,12 +161,12 @@ async function connectToMongoDB() {
   } catch (err) {
     console.error("❌ MongoDB Connection Error:", err.message);
     console.log("⏳ Retrying in 5 seconds...");
-    setTimeout(connectToMongoDB, 5000); // Auto retry after 5 sec
+    setTimeout(connectToMongoDB, 5000); // Retry connection
   }
 }
 connectToMongoDB();
 
-// 🔍 Connection State Logger
+// 🔍 Connection Status Events
 mongoose.connection.on("connected", () => {
   console.log("🟢 Mongoose connected to DB");
 });
@@ -185,7 +186,7 @@ app.use("/", siteRoutes(JWT_SECRET));
 app.use("/", projectRoutes(JWT_SECRET));
 app.use("/", allocationRoutes(JWT_SECRET));
 
-// Default route
+// Default Route
 app.get("/", (req, res) => {
   res.send("🚀 Attendance Node.js API is running successfully!");
 });
@@ -193,7 +194,6 @@ app.get("/", (req, res) => {
 // =============================
 // 🚀 Start Server
 // =============================
-const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
