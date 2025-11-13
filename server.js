@@ -7,7 +7,7 @@ const connectDB = require("./dbconfig/dbconnect");
 require("dotenv").config();
 
 // Import routes
-// const supervisorRoutes = require("./routes/supervisor");
+const supervisorRoutes = require("./routes/supervisor");
 const employeeRoutes = require("./routes/employee");
 const siteRoutes = require("./routes/site");
 const projectRoutes = require("./routes/project");
