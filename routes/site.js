@@ -1,11 +1,144 @@
 
 
 
+// const express = require("express");
+// const jwt = require("jsonwebtoken");
+// const Site = require("../models/Site");
+// const Counter = require("../models/Counter");
+
+
+// module.exports = (JWT_SECRET) => {
+//   const router = express.Router();
+
+//   // -------------------------------
+//   // JWT verification middleware
+//   // -------------------------------
+//   const verifyToken = (req, res, next) => {
+//     const authHeader = req.headers["authorization"];
+//     if (!authHeader) return res.status(403).json({ message: "No token provided" });
+
+//     const token = authHeader.split(" ")[1];
+//     if (!token) return res.status(403).json({ message: "Token missing" });
+
+//     jwt.verify(token, JWT_SECRET, (err, decoded) => {
+//       if (err) return res.status(401).json({ message: "Invalid token" });
+//       req.user = decoded;
+//       next();
+//     });
+//   };
+
+//   // -------------------------------
+//   // Add Site
+//   // -------------------------------
+// router.post("/addSite", verifyToken, async (req, res) => {
+//   try {
+//     const site = new Site({ ...req.body });
+//     await site.save();
+
+//     res.json({
+//       status: true,
+//       message: "Site added successfully"
+//     });
+
+   
+
+//   } catch (err) {
+//     res.status(500).json({ status: false, message: err.message });
+//   }
+// });
+
+
+
+//   // -------------------------------
+//   // Edit Site
+//   // -------------------------------
+// router.put("/editSite", verifyToken, async (req, res) => {
+//   try {
+//     const { id, ...updateData } = req.body;
+
+//     if (!id) return res.status(400).json({ status: false, message: "Site ID required" });
+
+//     const site = await Site.findOneAndUpdate({ id: id.toString() }, updateData, { new: true });
+//     if (!site) return res.status(404).json({ status: false, message: "Site not found" });
+
+//     // Optional: regenerate siteid
+//     site.siteid = `S${site.id.padStart(3, "0")}`;
+//     await site.save();
+
+  
+
+//     res.json({
+//       status: true,
+//       message: "Site updated successfully"
+//     });
+//   } catch (err) {
+//     res.status(500).json({ status: false, message: err.message });
+//   }
+// });
+
+
+//   // -------------------------------
+//   // Get all Sites
+//   // -------------------------------
+//   router.get("/getallSite", verifyToken, async (req, res) => {
+//     try {
+//       const sites = await Site.find();
+//       res.json({ status: true, message: "success", data: sites });
+//     } catch (err) {
+//       res.status(500).json({ status: false, message: err.message });
+//     }
+//   });
+
+//   // -------------------------------
+//   // Reset Sites & Counter
+//   // -------------------------------
+//   router.post("/resetSite", verifyToken, async (req, res) => {
+//     try {
+//       await Site.deleteMany({});
+//       await Counter.findOneAndUpdate(
+//         { name: "site" },
+//         { seq: 0 },
+//         { upsert: true }
+//       );
+//       res.json({ status: true, message: "Sites and IDs reset successfully" });
+//     } catch (err) {
+//       res.status(500).json({ status: false, message: err.message });
+//     }
+//   });
+
+
+// //delete
+
+// router.delete("/deleteSite", async (req, res) => {
+//   try {
+//     const { id } = req.body;
+   
+
+//     const site = await Site.findOneAndDelete({ id: id }); // 👈 use custom field
+
+//     if (!site) {
+//       return res
+//         .status(404)
+//         .json({ status: false, message: "Site not found" });
+//     }
+
+//     res.json({ status: true, message: "Site deleted successfully" });
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ status: false, message: "Server error" });
+//   }
+// });
+
+
+//   return router;
+// };
+
+
+
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const Site = require("../models/Site");
 const Counter = require("../models/Counter");
-
 
 module.exports = (JWT_SECRET) => {
   const router = express.Router();
@@ -14,6 +147,9 @@ module.exports = (JWT_SECRET) => {
   // JWT verification middleware
   // -------------------------------
   const verifyToken = (req, res, next) => {
+    // ⚡ Allow OPTIONS preflight requests to pass
+    if (req.method === "OPTIONS") return next();
+
     const authHeader = req.headers["authorization"];
     if (!authHeader) return res.status(403).json({ message: "No token provided" });
 
@@ -30,52 +166,35 @@ module.exports = (JWT_SECRET) => {
   // -------------------------------
   // Add Site
   // -------------------------------
-router.post("/addSite", verifyToken, async (req, res) => {
-  try {
-    const site = new Site({ ...req.body });
-    await site.save();
-
-    res.json({
-      status: true,
-      message: "Site added successfully"
-    });
-
-   
-
-  } catch (err) {
-    res.status(500).json({ status: false, message: err.message });
-  }
-});
-
-
+  router.post("/addSite", verifyToken, async (req, res) => {
+    try {
+      const site = new Site({ ...req.body });
+      await site.save();
+      res.json({ status: true, message: "Site added successfully" });
+    } catch (err) {
+      res.status(500).json({ status: false, message: err.message });
+    }
+  });
 
   // -------------------------------
   // Edit Site
   // -------------------------------
-router.put("/editSite", verifyToken, async (req, res) => {
-  try {
-    const { id, ...updateData } = req.body;
+  router.put("/editSite", verifyToken, async (req, res) => {
+    try {
+      const { id, ...updateData } = req.body;
+      if (!id) return res.status(400).json({ status: false, message: "Site ID required" });
 
-    if (!id) return res.status(400).json({ status: false, message: "Site ID required" });
+      const site = await Site.findOneAndUpdate({ id: id.toString() }, updateData, { new: true });
+      if (!site) return res.status(404).json({ status: false, message: "Site not found" });
 
-    const site = await Site.findOneAndUpdate({ id: id.toString() }, updateData, { new: true });
-    if (!site) return res.status(404).json({ status: false, message: "Site not found" });
+      site.siteid = `S${site.id.padStart(3, "0")}`;
+      await site.save();
 
-    // Optional: regenerate siteid
-    site.siteid = `S${site.id.padStart(3, "0")}`;
-    await site.save();
-
-  
-
-    res.json({
-      status: true,
-      message: "Site updated successfully"
-    });
-  } catch (err) {
-    res.status(500).json({ status: false, message: err.message });
-  }
-});
-
+      res.json({ status: true, message: "Site updated successfully" });
+    } catch (err) {
+      res.status(500).json({ status: false, message: err.message });
+    }
+  });
 
   // -------------------------------
   // Get all Sites
@@ -106,29 +225,19 @@ router.put("/editSite", verifyToken, async (req, res) => {
     }
   });
 
-
-//delete
-
-router.delete("/deleteSite", async (req, res) => {
-  try {
-    const { id } = req.body;
-   
-
-    const site = await Site.findOneAndDelete({ id: id }); // 👈 use custom field
-
-    if (!site) {
-      return res
-        .status(404)
-        .json({ status: false, message: "Site not found" });
+  // -------------------------------
+  // Delete Site
+  // -------------------------------
+  router.delete("/deleteSite", verifyToken, async (req, res) => {
+    try {
+      const { id } = req.body;
+      const site = await Site.findOneAndDelete({ id: id });
+      if (!site) return res.status(404).json({ status: false, message: "Site not found" });
+      res.json({ status: true, message: "Site deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ status: false, message: "Server error" });
     }
-
-    res.json({ status: true, message: "Site deleted successfully" });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ status: false, message: "Server error" });
-  }
-});
-
+  });
 
   return router;
 };
