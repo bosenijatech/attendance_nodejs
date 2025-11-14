@@ -43,7 +43,7 @@ mongoose.connection.on("disconnected", () => {
 // =============================
 // 🧩 Routes
 // =============================
-// app.use("/", supervisorRoutes(JWT_SECRET));
+app.use("/", supervisorRoutes(JWT_SECRET));
 app.use("/", employeeRoutes(JWT_SECRET));
 app.use("/", siteRoutes(JWT_SECRET));
 app.use("/", projectRoutes(JWT_SECRET));
