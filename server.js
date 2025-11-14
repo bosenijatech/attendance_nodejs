@@ -140,6 +140,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const connectDB = require("./dbconfig/dbconnect");
 require("dotenv").config();
+const cors = require("cors");
 
 // Import routes
 const supervisorRoutes = require("./routes/supervisor");
@@ -168,6 +169,12 @@ app.use((req, res, next) => {
   }
   next();
 });
+
+app.use(cors({
+  origin: "*", // for development, allow all. Replace with your frontend URL in production
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+}));
 
 // =============================
 // Body parser
