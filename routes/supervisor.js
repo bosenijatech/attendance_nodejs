@@ -69,7 +69,7 @@ module.exports = (JWT_SECRET = "mydefaultsecret") => {
 
       const token = jwt.sign({ id: user.id, role }, JWT_SECRET, { expiresIn: "7d" });
 
-      res.json({ status: true, message: "Login successful", token, role});
+      res.json({ status: true, message: "Login successful", token, role, data: user.toJSON() });
     } catch (err) {
       console.error("Login error:", err);
       res.status(500).json({ status: false, message: err.message });
