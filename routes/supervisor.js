@@ -46,6 +46,7 @@ module.exports = (JWT_SECRET = "mydefaultsecret") => {
       console.log("✅ Default admin created (username: admin, password: 123)");
     }
   };
+ensureAdminExists();
 
 
   // ---------------- LOGIN (Admin or Supervisor) ----------------

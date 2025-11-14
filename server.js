@@ -136,10 +136,8 @@
 
 
 
-// server.js
 const express = require("express");
 const mongoose = require("mongoose");
-const jwt = require("jsonwebtoken");
 const connectDB = require("./dbconfig/dbconnect");
 require("dotenv").config();
 
@@ -178,7 +176,6 @@ app.use(express.json());
 
 // Load environment variables
 const PORT = process.env.PORT || 3000;
-const MONGO_URI = process.env.MONGO_URI;
 const JWT_SECRET = process.env.JWT_SECRET || "your_secret_key_here";
 
 // =============================
@@ -187,15 +184,9 @@ const JWT_SECRET = process.env.JWT_SECRET || "your_secret_key_here";
 connectDB();
 
 // Connection Status Events
-mongoose.connection.on("connected", () => {
-  console.log("🟢 Mongoose connected to DB");
-});
-mongoose.connection.on("error", (err) => {
-  console.error("🔴 Mongoose connection error:", err);
-});
-mongoose.connection.on("disconnected", () => {
-  console.warn("🟠 Mongoose disconnected");
-});
+mongoose.connection.on("connected", () => console.log("🟢 Mongoose connected to DB"));
+mongoose.connection.on("error", (err) => console.error("🔴 Mongoose connection error:", err));
+mongoose.connection.on("disconnected", () => console.warn("🟠 Mongoose disconnected"));
 
 // =============================
 // 🧩 Routes
@@ -207,13 +198,9 @@ app.use("/", projectRoutes(JWT_SECRET));
 app.use("/", allocationRoutes(JWT_SECRET));
 
 // Default Route
-app.get("/", (req, res) => {
-  res.send("🚀 Attendance Node.js API is running successfully!");
-});
+app.get("/", (req, res) => res.send("🚀 Attendance Node.js API is running successfully!"));
 
 // =============================
 // 🚀 Start Server
 // =============================
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
