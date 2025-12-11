@@ -21,11 +21,18 @@ const app = express();
 // =============================
 // 🌐 GLOBAL CORS FIX (ALL ROUTES + PRE-FLIGHT)
 // =============================
-app.use(cors({
-  origin: "*", // for development, allow all. Replace with your frontend URL in production
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"]
-}));
+// app.use(cors({
+//   origin: "*", // for development, allow all. Replace with your frontend URL in production
+//   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+//   allowedHeaders: ["Content-Type", "Authorization"]
+// }));
+
+
+const corsOptions = {
+  origin: "*", // or your frontend URL e.g. "http://localhost:4200"methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],};
+app.use(cors(corsOptions));
+
 
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*"); // Allow all origins
