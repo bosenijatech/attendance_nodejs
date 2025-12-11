@@ -170,7 +170,7 @@ module.exports = (JWT_SECRET) => {
     try {
       const site = new Site({ ...req.body });
       await site.save();
-      res.json({ status: true, message: "Site added successfully" });
+      res.status(200).json({ status: true, message: "Site added successfully" });
     } catch (err) {
       res.status(500).json({ status: false, message: err.message });
     }
