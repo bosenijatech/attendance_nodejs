@@ -202,7 +202,7 @@ module.exports = (JWT_SECRET) => {
   router.get("/getallSite", verifyToken, async (req, res) => {
     try {
       const sites = await Site.find();
-       res.status(200)({ status: true, message: "success", data: sites });
+      res.json({ status: true, message: "success", data: sites });
     } catch (err) {
       res.status(500).json({ status: false, message: err.message });
     }

@@ -61,7 +61,7 @@ module.exports = (JWT_SECRET) => {
   router.get("/getAllAllocations", verifyToken, async (req, res) => {
     try {
       const data = await Allocation.find().sort({ id: 1 });
-      res.status(200)({ status: true, data });
+      res.json({ status: true, data });
     } catch (err) {
       console.error("❌ Error fetching allocations:", err);
       res.status(500).json({
@@ -105,7 +105,7 @@ module.exports = (JWT_SECRET) => {
         message: "Allocation not found",
       });
 
-     res.status(200)({
+    return res.json({
       status: true,
       message: "Allocation updated successfully",
       data: updated,
@@ -139,7 +139,7 @@ module.exports = (JWT_SECRET) => {
           message: "Allocation not found",
         });
 
-      res.status(200)({
+      res.json({
         status: true,
         message: "Allocation deleted successfully",
       });

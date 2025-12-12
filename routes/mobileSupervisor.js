@@ -75,7 +75,7 @@ router.post("/register", async (req, res) => {
       supervisorname,
       username,
       password,
-      supervisorfingerprint: fingerprint || "",
+      supervisorfingerprint: fingerprint,
     });
 
     await supervisor.save();
