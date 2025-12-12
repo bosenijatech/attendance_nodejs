@@ -52,7 +52,7 @@ module.exports = (JWT_SECRET) => {
 
    
 
-      res.json({
+     res.status(200)({
         status: true,
         message: "Employee added successfully",
       });
@@ -100,7 +100,7 @@ module.exports = (JWT_SECRET) => {
   router.get("/getallEmployee", verifyToken, async (req, res) => {
     try {
       const employees = await Employee.find();
-      res.json({ status: true, message: "success", data: employees });
+      res.status(200)({ status: true, message: "success", data: employees });
     } catch (err) {
       res.status(500).json({ status: false, message: err.message });
     }
@@ -115,7 +115,7 @@ module.exports = (JWT_SECRET) => {
         { seq: 0 },
         { upsert: true }
       );
-      res.json({
+      res.status(200)({
         status: true,
         message: "Employee and IDs reset successfully",
       });
