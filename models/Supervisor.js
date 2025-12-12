@@ -8,6 +8,7 @@ const SupervisorSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   supervisorfingerprint: String,
+  
   type: { type: String, default: "Supervisor" },
   status: { type: String, default: "Active" },
 });

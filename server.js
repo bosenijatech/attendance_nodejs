@@ -10,6 +10,7 @@ const siteRoutes = require("./routes/site");
 const projectRoutes = require("./routes/project");
 const allocationRoutes = require("./routes/allocation");
 const mobileSupervisorRoutes = require("./routes/mobileSupervisor");
+const attendanceRoutes = require("./routes/attendance");
  
 // Initialize App
 const app = express();
@@ -28,6 +29,7 @@ app.use("/", siteRoutes(JWT_SECRET));
 app.use("/", projectRoutes(JWT_SECRET));
 app.use("/", allocationRoutes(JWT_SECRET));
 app.use("/mobile/supervisor", mobileSupervisorRoutes);
+app.use("/attendance", attendanceRoutes);
  
 // Default Route
 app.get("/", (req, res) => res.send("🚀 Attendance Node.js API is running successfully!"));
