@@ -8,7 +8,7 @@ const AllocationSchema = new mongoose.Schema({
   id: { type: String },
   allocationid: { type: String },
 
-  supervisorid: { type: String },
+  supervisorid: { type: String , required: true},
   supervisorname: { type: String, required: true },
 
   employee: [
