@@ -86,8 +86,9 @@ ensureAdminExists();
     let user = null;
     let role = null;
 
-    // 🔐 1️⃣ Supervisor Fingerprint Login
+    // 🔐 1️⃣ FINGERPRINT LOGIN (Supervisor ONLY)
     if (supervisorfingerprint) {
+
       user = await Supervisor.findOne({
         supervisorfingerprint,
         status: "Active"
@@ -103,8 +104,9 @@ ensureAdminExists();
       role = "Supervisor";
     }
 
-    // 🔐 2️⃣ Username + Password Login
+    // 🔐 2️⃣ USERNAME + PASSWORD LOGIN
     else {
+
       if (!username || !password) {
         return res.status(400).json({
           status: false,
@@ -118,7 +120,10 @@ ensureAdminExists();
 
       // 👉 If not admin, check Supervisor
       if (!user) {
-        user = await Supervisor.findOne({ username, status: "Active" });
+        user = await Supervisor.findOne({
+          username,
+          status: "Active"
+        });
         role = "Supervisor";
       }
 
@@ -137,7 +142,7 @@ ensureAdminExists();
       }
     }
 
-    // 🔐 JWT TOKEN
+    // 🔐 JWT TOKEN (COMMON)
     const token = jwt.sign(
       { id: user.id, role },
       JWT_SECRET,
@@ -160,6 +165,7 @@ ensureAdminExists();
     });
   }
 });
+
 
 
   // ---------------- ADD SUPERVISOR or ADMIN ----------------
