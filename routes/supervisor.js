@@ -50,32 +50,117 @@ ensureAdminExists();
 
 
   // ---------------- LOGIN (Admin or Supervisor) ----------------
-  router.post("/login", async (req, res) => {
-    try {
-      const { username, password } = req.body;
-      if (!username || !password)
-        return res.status(400).json({ status: false, message: "Username and password required" });
+  // router.post("/login", async (req, res) => {
+  //   try {
+  //     const { username, password } = req.body;
+  //     if (!username || !password)
+  //       return res.status(400).json({ status: false, message: "Username and password required" });
 
-      let user = await Admin.findOne({ username });
-      let role = "Admin";
+  //     let user = await Admin.findOne({ username });
+  //     let role = "Admin";
+
+  //     if (!user) {
+  //       user = await Supervisor.findOne({ username });
+  //       role = "Supervisor";
+  //     }
+
+  //     if (!user) return res.status(404).json({ status: false, message: "User not found" });
+  //     if (password !== user.password)
+  //       return res.status(401).json({ status: false, message: "Invalid password" });
+
+  //     const token = jwt.sign({ id: user.id, role }, JWT_SECRET, { expiresIn: "7d" });
+
+  //     res.json({ status: true, message: "Login successful", token, role, data: user.toJSON() });
+  //   } catch (err) {
+  //     console.error("Login error:", err);
+  //     res.status(500).json({ status: false, message: err.message });
+  //   }
+  // });
+
+
+
+  router.post("/login", async (req, res) => {
+  try {
+    const { username, password, supervisorfingerprint } = req.body;
+
+    let user = null;
+    let role = null;
+
+    // 🔐 1️⃣ Supervisor Fingerprint Login
+    if (supervisorfingerprint) {
+      user = await Supervisor.findOne({
+        supervisorfingerprint,
+        status: "Active"
+      });
 
       if (!user) {
-        user = await Supervisor.findOne({ username });
+        return res.json({
+          status: false,
+          message: "Fingerprint not matched"
+        });
+      }
+
+      role = "Supervisor";
+    }
+
+    // 🔐 2️⃣ Username + Password Login
+    else {
+      if (!username || !password) {
+        return res.status(400).json({
+          status: false,
+          message: "Username and password required"
+        });
+      }
+
+      // 👉 Check Admin
+      user = await Admin.findOne({ username });
+      role = "Admin";
+
+      // 👉 If not admin, check Supervisor
+      if (!user) {
+        user = await Supervisor.findOne({ username, status: "Active" });
         role = "Supervisor";
       }
 
-      if (!user) return res.status(404).json({ status: false, message: "User not found" });
-      if (password !== user.password)
-        return res.status(401).json({ status: false, message: "Invalid password" });
+      if (!user) {
+        return res.status(404).json({
+          status: false,
+          message: "User not found"
+        });
+      }
 
-      const token = jwt.sign({ id: user.id, role }, JWT_SECRET, { expiresIn: "7d" });
-
-      res.json({ status: true, message: "Login successful", token, role, data: user.toJSON() });
-    } catch (err) {
-      console.error("Login error:", err);
-      res.status(500).json({ status: false, message: err.message });
+      if (password !== user.password) {
+        return res.status(401).json({
+          status: false,
+          message: "Invalid password"
+        });
+      }
     }
-  });
+
+    // 🔐 JWT TOKEN
+    const token = jwt.sign(
+      { id: user.id, role },
+      JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    res.json({
+      status: true,
+      message: "Login successful",
+      role,
+      token,
+      data: user.toJSON()
+    });
+
+  } catch (err) {
+    console.error("Login error:", err);
+    res.status(500).json({
+      status: false,
+      message: err.message
+    });
+  }
+});
+
 
   // ---------------- ADD SUPERVISOR or ADMIN ----------------
   router.post("/addSupervisor", verifyToken, async (req, res) => {

@@ -100,7 +100,7 @@ router.post("/mark", async (req, res) => {
     const endOfDay = new Date();
     endOfDay.setHours(23, 59, 59, 999);
 
-    // ❌ already marked?
+    
     const alreadyMarked = await Attendance.findOne({
       supervisorid,
       projectid,
