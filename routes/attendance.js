@@ -1,55 +1,55 @@
+
+
+
+
 // const express = require("express");
 // const router = express.Router();
 // const Attendance = require("../models/attendance");
 
-// // MARK ATTENDANCE
+// // CREATE ATTENDANCE ENTRY
 // router.post("/mark", async (req, res) => {
 //   try {
 //     const {
 //       supervisorid,
 //       supervisorname,
-//       employeeid,
-//       employeename,
+//       employee,
 //       projectid,
 //       projectname,
 //       siteid,
 //       sitename,
-//       attendanceDate,
-//       status
+//       fromDate,
+//       toDate,
+//       status,
+//       createdby
 //     } = req.body;
 
-//     // Check if already marked for same date
-//     const existing = await Attendance.findOne({
-//       employeeid,
-//       attendanceDate: new Date(attendanceDate)
-//     });
-
-//     if (existing) {
+//     if (!fromDate || !toDate) {
 //       return res.status(400).json({
 //         status: false,
-//         message: "Attendance already marked for this employee"
+//         message: "fromDate and toDate are required"
 //       });
 //     }
 
 //     const attendance = new Attendance({
 //       supervisorid,
 //       supervisorname,
-//       employeeid,
-//       employeename,
+//       employee,   // ← ARRAY of employees
 //       projectid,
 //       projectname,
 //       siteid,
 //       sitename,
-//       attendanceDate,
+//       fromDate,
+//       toDate,
 //       status,
+//       createdby,
 //     });
 
-//     const savedData = await attendance.save();
+//     const saved = await attendance.save();
 
 //     res.json({
 //       status: true,
-//       message: "Attendance marked successfully",
-//       data: savedData
+//       message: "Attendance saved successfully",
+//       data: saved
 //     });
 
 //   } catch (err) {
@@ -64,9 +64,9 @@
 // module.exports = router;
 
 
-
 const express = require("express");
-const router = express.Router();
+const router = express.Router();   // 👈 THIS LINE IS MANDATORY
+
 const Attendance = require("../models/attendance");
 
 // CREATE ATTENDANCE ENTRY
@@ -93,10 +93,32 @@ router.post("/mark", async (req, res) => {
       });
     }
 
+    // 📅 today range
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+
+    // ❌ already marked?
+    const alreadyMarked = await Attendance.findOne({
+      supervisorid,
+      projectid,
+      siteid,
+      currentDate: { $gte: startOfDay, $lte: endOfDay }
+    });
+
+    if (alreadyMarked) {
+      return res.status(409).json({
+        status: false,
+        message: "Attendance already marked for today"
+      });
+    }
+
     const attendance = new Attendance({
       supervisorid,
       supervisorname,
-      employee,   // ← ARRAY of employees
+      employee,
       projectid,
       projectname,
       siteid,
@@ -104,7 +126,7 @@ router.post("/mark", async (req, res) => {
       fromDate,
       toDate,
       status,
-      createdby,
+      createdby
     });
 
     const saved = await attendance.save();
@@ -118,10 +140,9 @@ router.post("/mark", async (req, res) => {
   } catch (err) {
     res.status(500).json({
       status: false,
-      message: "Server Error",
-      error: err.message
+      message: err.message
     });
   }
 });
 
-module.exports = router;
+module.exports = router;   // 👈 THIS ALSO REQUIRED

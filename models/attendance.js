@@ -86,7 +86,7 @@ const AttendanceSchema = new mongoose.Schema({
   fromDate: { type: Date, required: true },
   toDate: { type: Date, required: true },
 
-  status: { type: String, enum: ["Present", "Absent", "Leave"], default: "Absent" },
+  status: { type: String, enum: ["Present", "Absent", "Leave"], default: "" },
   syncstatus: { type: Number, default: 0 },
 
   currentDate: { type: Date, default: Date.now },
