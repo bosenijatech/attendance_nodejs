@@ -72,25 +72,18 @@ module.exports = (JWT_SECRET) => {
   //   }
   // });
   
-  router.post("/getAllAllocations", verifyToken, async (req, res) => {
+router.post("/getAllAllocations", verifyToken, async (req, res) => {
   try {
-    const { id, role } = req.body; // 👈 BODY la irundhu edukrom
+    const { id, role } = req.body;
 
     let filter = {};
 
     // 🟢 Supervisor → own allocations only
     if (role === "Supervisor") {
-      if (!id) {
-        return res.status(400).json({
-          status: false,
-          message: "Supervisor id is required"
-        });
-      }
-      filter = { supervisorId: id };
+      filter = { supervisorid: id }; // ✅ CORRECT KEY
     }
 
-    // 🔵 Admin → ellaa allocations
-    // role === "Admin" → filter empty
+    // 🔵 Admin → filter empty → all allocations
 
     const data = await Allocation.find(filter).sort({ id: 1 });
 
@@ -98,7 +91,6 @@ module.exports = (JWT_SECRET) => {
       status: true,
       data
     });
-
   } catch (err) {
     console.error("❌ Error fetching allocations:", err);
     res.status(500).json({
@@ -108,6 +100,7 @@ module.exports = (JWT_SECRET) => {
     });
   }
 });
+
 
 
 
