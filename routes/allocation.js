@@ -82,10 +82,10 @@ router.get("/getAllSupervisors", verifyToken, async (req, res) => {
 
     if (Role === "Admin") {
       // Admin → get all supervisors
-      supervisors = await Supervisor.find().lean();
+      supervisors = await supervisors.find().lean();
     } else if (Role === "Supervisor") {
       // Supervisor → only themselves
-      supervisors = await Supervisor.find({ id: Id }).lean();
+      supervisors = await supervisors.find({ id: Id }).lean();
     } else {
       return res.status(403).json({ status: false, message: "Unauthorized user type" });
     }
