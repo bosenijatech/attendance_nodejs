@@ -72,6 +72,7 @@ module.exports = (JWT_SECRET) => {
   //   }
   // });
   
+
 router.post("/getAllAllocations", verifyToken, async (req, res) => {
   try {
     const { id, type } = req.body;

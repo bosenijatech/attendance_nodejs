@@ -255,13 +255,13 @@ ensureAdminExists();
   //   }
   // });
 
-  router.post("/getAllSupervisors", verifyToken, async (req, res) => {
+router.post("/getAllSupervisors", verifyToken, async (req, res) => {
   try {
     const { id, type } = req.body;
 
     let filter = {};
 
-    // 🔒 Supervisor → only own data
+    // Supervisor → only own data
     if (type === "Supervisor") {
       if (!id) {
         return res.status(400).json({
@@ -269,11 +269,10 @@ ensureAdminExists();
           message: "Supervisor id required",
         });
       }
-      filter = { _id: id };
+      filter = { id: id }; // <-- important change
     }
-    // Admin → empty filter → all supervisors
 
-    const supervisors = await Supervisor.find(filter).sort({ _id: 1 });
+    const supervisors = await Supervisor.find(filter).sort({ id: 1 });
 
     res.json({
       status: true,
@@ -288,6 +287,7 @@ ensureAdminExists();
     });
   }
 });
+
 
 
   // ---------------- DELETE SUPERVISOR or ADMIN ----------------
