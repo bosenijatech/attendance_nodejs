@@ -58,19 +58,47 @@ module.exports = (JWT_SECRET) => {
   });
 
   // 🟡 GET ALL ALLOCATIONS
-  router.get("/getAllAllocations", verifyToken, async (req, res) => {
-    try {
-      const data = await Allocation.find().sort({ id: 1 });
-      res.json({ status: true, data });
-    } catch (err) {
-      console.error("❌ Error fetching allocations:", err);
-      res.status(500).json({
-        status: false,
-        message: "Error fetching data",
-        error: err.message,
-      });
+  // router.get("/getAllAllocations", verifyToken, async (req, res) => {
+  //   try {
+  //     const data = await Allocation.find().sort({ id: 1 });
+  //     res.json({ status: true, data });
+  //   } catch (err) {
+  //     console.error("❌ Error fetching allocations:", err);
+  //     res.status(500).json({
+  //       status: false,
+  //       message: "Error fetching data",
+  //       error: err.message,
+  //     });
+  //   }
+  // });
+
+
+router.post("/getAllAllocations", verifyToken, async (req, res) => {
+  try {
+    let filter = {};
+
+    // 🧑‍💼 Supervisor → ID base
+    if (req.user.role === "supervisor") {
+      filter.supervisorid = req.user.supervisorid;
     }
-  });
+
+    // 👑 Admin → filter empty
+
+    const data = await Allocation.find(filter).sort({ id: 1 });
+
+    res.json({
+      status: true,
+      data,
+    });
+  } catch (err) {
+    res.status(500).json({
+      status: false,
+      message: err.message,
+    });
+  }
+});
+
+
 
   // ✏️ EDIT ALLOCATION
  router.put("/editAllocation", verifyToken, async (req, res) => {
