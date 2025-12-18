@@ -71,32 +71,46 @@ module.exports = (JWT_SECRET) => {
   //     });
   //   }
   // });
-
-
-router.post("/getAllAllocations", verifyToken, async (req, res) => {
+  
+  router.post("/getAllAllocations", verifyToken, async (req, res) => {
   try {
+    const { id, role } = req.body; // 👈 BODY la irundhu edukrom
+
     let filter = {};
 
-    // 🧑‍💼 Supervisor → ID base
-    if (req.user.role === "supervisor") {
-      filter.supervisorid = req.user.supervisorid;
+    // 🟢 Supervisor → own allocations only
+    if (role === "Supervisor") {
+      if (!id) {
+        return res.status(400).json({
+          status: false,
+          message: "Supervisor id is required"
+        });
+      }
+      filter = { supervisorId: id };
     }
 
-    // 👑 Admin → filter empty
+    // 🔵 Admin → ellaa allocations
+    // role === "Admin" → filter empty
 
     const data = await Allocation.find(filter).sort({ id: 1 });
 
     res.json({
       status: true,
-      data,
+      data
     });
+
   } catch (err) {
+    console.error("❌ Error fetching allocations:", err);
     res.status(500).json({
       status: false,
-      message: err.message,
+      message: "Error fetching allocations",
+      error: err.message
     });
   }
 });
+
+
+
 
 
 
