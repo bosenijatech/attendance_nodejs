@@ -74,19 +74,19 @@ module.exports = (JWT_SECRET) => {
   
 router.post("/getAllAllocations", verifyToken, async (req, res) => {
   try {
-    const { id, type } = req.body; // type = "Admin" / "Supervisor"
+    const { id, type } = req.body;
 
     let filter = {};
 
-    // Supervisor → own allocations only
     if (type === "Supervisor") {
       if (!id) {
         return res.status(400).json({ status: false, message: "Supervisor id required" });
       }
+
+      // 🔒 Only allocations that have supervisorid and match
       filter = { supervisorid: id };
     }
-
-    // Admin → filter stays empty → fetch all
+    // Admin → empty filter → all allocations
 
     const data = await Allocation.find(filter).sort({ id: 1 });
 
