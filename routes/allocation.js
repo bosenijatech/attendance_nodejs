@@ -74,29 +74,25 @@ module.exports = (JWT_SECRET) => {
   
 router.post("/getAllAllocations", verifyToken, async (req, res) => {
   try {
-    const { id, role } = req.body;
+    // Can use req.user (from token) OR req.body
+    const { id, role } = req.body; // from POST body
 
     let filter = {};
 
-    // 🟢 Supervisor → own allocations only
     if (role === "Supervisor") {
-      filter = { supervisorid: id }; // ✅ CORRECT KEY
+      filter = { supervisorid: id }; // ✅ exact field match
     }
-
-    // 🔵 Admin → filter empty → all allocations
+    // Admin → empty filter → all allocations
 
     const data = await Allocation.find(filter).sort({ id: 1 });
 
-    res.json({
-      status: true,
-      data
-    });
+    res.json({ status: true, data });
   } catch (err) {
     console.error("❌ Error fetching allocations:", err);
     res.status(500).json({
       status: false,
       message: "Error fetching allocations",
-      error: err.message
+      error: err.message,
     });
   }
 });
