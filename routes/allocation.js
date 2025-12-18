@@ -73,32 +73,27 @@ module.exports = (JWT_SECRET) => {
   // });
   
 
-router.post("/getAllAllocations", verifyToken, async (req, res) => {
+router.get("/getAllSupervisors", verifyToken, async (req, res) => {
   try {
-    const { id, type } = req.body;
+    const Role = req.user?.role; // from token, "Admin" or "Supervisor"
+    const Id = req.user?.id;     // from token, "1" in your example
 
-    let filter = {};
+    let supervisors;
 
-    if (type === "Supervisor") {
-      if (!id) {
-        return res.status(400).json({ status: false, message: "Supervisor id required" });
-      }
-
-      // 🔒 Only allocations that have supervisorid and match
-      filter = { supervisorid: id };
+    if (Role === "Admin") {
+      // Admin → get all supervisors
+      supervisors = await Supervisor.find().lean();
+    } else if (Role === "Supervisor") {
+      // Supervisor → only themselves
+      supervisors = await Supervisor.find({ id: Id }).lean();
+    } else {
+      return res.status(403).json({ status: false, message: "Unauthorized user type" });
     }
-    // Admin → empty filter → all allocations
 
-    const data = await Allocation.find(filter).sort({ id: 1 });
-
-    res.json({ status: true, data });
+    res.json({ status: true, message: "Supervisors fetched successfully", data: supervisors });
   } catch (err) {
-    console.error("❌ Error fetching allocations:", err);
-    res.status(500).json({
-      status: false,
-      message: "Error fetching allocations",
-      error: err.message,
-    });
+    console.error("Get supervisors error:", err);
+    res.status(500).json({ status: false, message: err.message });
   }
 });
 
