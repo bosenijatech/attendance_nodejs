@@ -245,15 +245,50 @@ ensureAdminExists();
   });
 
   // ---------------- GET ALL SUPERVISORS ----------------
-  router.get("/getAllSupervisors", verifyToken, async (req, res) => {
-    try {
-      const supervisors = await Supervisor.find().lean();
-      res.json({ status: true, message: "Supervisors fetched successfully", data: supervisors });
-    } catch (err) {
-      console.error("Get supervisors error:", err);
-      res.status(500).json({ status: false, message: err.message });
+  // router.get("/getAllSupervisors", verifyToken, async (req, res) => {
+  //   try {
+  //     const supervisors = await Supervisor.find().lean();
+  //     res.json({ status: true, message: "Supervisors fetched successfully", data: supervisors });
+  //   } catch (err) {
+  //     console.error("Get supervisors error:", err);
+  //     res.status(500).json({ status: false, message: err.message });
+  //   }
+  // });
+
+  router.post("/getAllSupervisors", verifyToken, async (req, res) => {
+  try {
+    const { id, type } = req.body;
+
+    let filter = {};
+
+    // 🔒 Supervisor → only own data
+    if (type === "Supervisor") {
+      if (!id) {
+        return res.status(400).json({
+          status: false,
+          message: "Supervisor id required",
+        });
+      }
+      filter = { _id: id };
     }
-  });
+    // Admin → empty filter → all supervisors
+
+    const supervisors = await Supervisor.find(filter).sort({ _id: 1 });
+
+    res.json({
+      status: true,
+      data: supervisors,
+    });
+  } catch (err) {
+    console.error("❌ Error fetching supervisors:", err);
+    res.status(500).json({
+      status: false,
+      message: "Error fetching supervisors",
+      error: err.message,
+    });
+  }
+});
+
 
   // ---------------- DELETE SUPERVISOR or ADMIN ----------------
   router.delete("/deleteSupervisor", verifyToken, async (req, res) => {
