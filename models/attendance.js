@@ -19,7 +19,13 @@ const AttendanceSchema = new mongoose.Schema({
       id: { type: String },
       employeeid: { type: String },
       employeename: { type: String },
-      attendancestatus: { type: String, default: '' }
+      // attendancestatus: { type: String, default: '' }
+      attendancestatus: {
+  type: String,
+  enum: ["Present", "Absent", "Leave"],
+  default: ""
+}
+
     },
   ],
 
