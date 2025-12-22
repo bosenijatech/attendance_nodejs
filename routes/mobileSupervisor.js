@@ -64,7 +64,7 @@ router.post("/register", async (req, res) => {
     // Check if username already exists
     const existing = await Supervisor.findOne({ username });
     if (existing) {
-      return res.status(409).json({
+      return res.status(400).json({
         status: false,
         message: "Username already exists",
       });

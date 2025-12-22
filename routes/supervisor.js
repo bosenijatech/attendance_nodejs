@@ -245,29 +245,21 @@ ensureAdminExists();
   });
 
   // ---------------- GET ALL SUPERVISORS ----------------
-  // router.get("/getAllSupervisors", verifyToken, async (req, res) => {
-  //   try {
-  //     const supervisors = await Supervisor.find().lean();
-  //     res.json({ status: true, message: "Supervisors fetched successfully", data: supervisors });
-  //   } catch (err) {
-  //     console.error("Get supervisors error:", err);
-  //     res.status(500).json({ status: false, message: err.message });
-  //   }
-  // });
+
 
 router.get("/getAllSupervisors", verifyToken, async (req, res) => {
   try {
-    const userRole = req.user?.role; // from token, "Admin" or "Supervisor"
-    const userId = req.user?.id;     // from token, "1" in your example
+    const Role = req.user?.role; 
+    const Id = req.user?.id;     
 
     let supervisors;
 
-    if (userRole === "Admin") {
+    if (Role === "Admin") {
       // Admin → get all supervisors
       supervisors = await Supervisor.find().lean();
-    } else if (userRole === "Supervisor") {
+    } else if (Role === "Supervisor") {
       // Supervisor → only themselves
-      supervisors = await Supervisor.find({ id: userId }).lean();
+      supervisors = await Supervisor.find({ id: Id }).lean();
     } else {
       return res.status(403).json({ status: false, message: "Unauthorized user type" });
     }
