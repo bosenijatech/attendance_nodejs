@@ -150,81 +150,82 @@ module.exports = (JWT_SECRET) => {
   };
 
   // 🟢 MARK ATTENDANCE
- router.post("/mark", verifyToken, async (req, res) => {
-    try {
-      const { allocationid, attendanceDate, employee } = req.body;
+router.post("/mark", verifyToken, async (req, res) => {
+  try {
+    const { allocationid, attendanceDate, fromDate, toDate, employee } = req.body;
 
-      if (!allocationid || !attendanceDate) {
-        return res.status(400).json({
-          status: false,
-          message: "allocationid & attendanceDate are required",
-        });
-      }
-
-      // fetch allocation
-      const allocation = await allocation.findOne({ allocationid });
-      if (!allocation)
-        return res.status(404).json({ status: false, message: "Allocation not found" });
-
-      // supervisor validation
-      if (req.user.role === "Supervisor" && req.user.id !== allocation.supervisorid) {
-        return res.status(403).json({
-          status: false,
-          message: "Not allowed to mark attendance for this allocation",
-        });
-      }
-
-      // generate attendanceid
-      const counter = await Counter.findOneAndUpdate(
-        { name: "Attendance" },
-        { $inc: { seq: 1 } },
-        { new: true, upsert: true }
-      );
-      const attendanceid = `ATT${String(counter.seq).padStart(3, "0")}`;
-
-      // employee list: optional attendancestatus, default ""
-      const finalEmployees = (employee?.length ? employee : allocation.employee).map((e) => ({
-        employeeid: e.employeeid,
-        employeename: e.employeename,
-        attendancestatus: ["Present", "Absent", "Leave"].includes(e.attendancestatus)
-          ? e.attendancestatus
-          : "", // default empty
-      }));
-
-      const attendance = new Attendance({
-        attendanceid,
-        allocationid,
-        attendanceDate,
-        fromDate: allocation.fromDate,
-        toDate: allocation.toDate,
-        supervisorid: allocation.supervisorid,
-        supervisorname: allocation.supervisorname,
-        projectid: allocation.projectid,
-        projectname: allocation.projectname,
-        siteid: allocation.siteid,
-        sitename: allocation.sitename,
-        employee: finalEmployees,
+    if (!allocationid || !attendanceDate) {
+      return res.status(400).json({
+        status: false,
+        message: "allocationid & attendanceDate are required",
       });
-
-      const saved = await attendance.save();
-
-      res.json({
-        status: true,
-        message: "Attendance created successfully",
-        data: saved,
-      });
-    } catch (err) {
-      if (err.code === 11000) {
-        return res.status(409).json({
-          status: false,
-          message: "Attendance already marked for this allocation & date",
-        });
-      }
-      res.status(500).json({ status: false, message: "Server error", error: err.message });
     }
-  });
 
-  
+    const allocation = await Allocation.findOne({ allocationid });
+    if (!allocation)
+      return res.status(404).json({ status: false, message: "Allocation not found" });
+
+    // Use frontend fromDate/toDate if provided, else allocation's
+    const finalFromDate = fromDate || allocation.fromDate;
+    const finalToDate = toDate || allocation.toDate;
+
+    if (!finalFromDate || !finalToDate) {
+      return res.status(400).json({
+        status: false,
+        message: "fromDate and toDate are required",
+      });
+    }
+
+    // generate attendanceid
+    const counter = await Counter.findOneAndUpdate(
+      { name: "Attendance" },
+      { $inc: { seq: 1 } },
+      { new: true, upsert: true }
+    );
+    const attendanceid = `ATT${String(counter.seq).padStart(3, "0")}`;
+
+    // employee list: optional attendancestatus, default ""
+    const finalEmployees = (employee?.length ? employee : allocation.employee).map((e) => ({
+      employeeid: e.employeeid,
+      employeename: e.employeename,
+      attendancestatus: ["Present", "Absent", "Leave"].includes(e.attendancestatus)
+        ? e.attendancestatus
+        : "",
+    }));
+
+    const attendance = new Attendance({
+      attendanceid,
+      allocationid,
+      attendanceDate,
+      fromDate: finalFromDate,
+      toDate: finalToDate,
+      supervisorid: allocation.supervisorid,
+      supervisorname: allocation.supervisorname,
+      projectid: allocation.projectid,
+      projectname: allocation.projectname,
+      siteid: allocation.siteid,
+      sitename: allocation.sitename,
+      employee: finalEmployees,
+    });
+
+    const saved = await attendance.save();
+
+    res.json({
+      status: true,
+      message: "Attendance created successfully",
+      data: saved,
+    });
+  } catch (err) {
+    if (err.code === 11000) {
+      return res.status(409).json({
+        status: false,
+        message: "Attendance already marked for this allocation & date",
+      });
+    }
+    res.status(500).json({ status: false, message: "Server error", error: err.message });
+  }
+});
+
 
 
   // 📄 GET ALL ATTENDANCE
