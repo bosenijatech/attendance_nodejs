@@ -114,6 +114,8 @@
 // module.exports = router;   // 👈 THIS ALSO REQUIRED
 
 
+
+
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const Attendance = require("../models/attendance");
@@ -148,65 +150,82 @@ module.exports = (JWT_SECRET) => {
   };
 
   // 🟢 MARK ATTENDANCE
-  router.post("/mark", verifyToken, async (req, res) => {
+ router.post("/mark", verifyToken, async (req, res) => {
     try {
-      const {
-        supervisorid,
-        supervisorname,
-        employee,
-        projectid,
-        projectname,
-        siteid,
-        sitename,
-        fromDate,
-        toDate,
-        status,
-        createdby,
-      } = req.body;
+      const { allocationid, attendanceDate, employee } = req.body;
 
-      if (!fromDate || !toDate) {
+      if (!allocationid || !attendanceDate) {
         return res.status(400).json({
           status: false,
-          message: "fromDate and toDate are required",
+          message: "allocationid & attendanceDate are required",
         });
       }
 
-      // 📅 Today range
-      const startOfDay = new Date();
-      startOfDay.setHours(0, 0, 0, 0);
+      // fetch allocation
+      const allocation = await allocation.findOne({ allocationid });
+      if (!allocation)
+        return res.status(404).json({ status: false, message: "Allocation not found" });
 
-      const endOfDay = new Date();
-      endOfDay.setHours(23, 59, 59, 999);
+      // supervisor validation
+      if (req.user.role === "Supervisor" && req.user.id !== allocation.supervisorid) {
+        return res.status(403).json({
+          status: false,
+          message: "Not allowed to mark attendance for this allocation",
+        });
+      }
 
-      const alreadyMarked = await Attendance.findOne({
-        supervisorid,
-        projectid,
-        siteid,
-        currentDate: { $gte: startOfDay, $lte: endOfDay },
+      // generate attendanceid
+      const counter = await Counter.findOneAndUpdate(
+        { name: "Attendance" },
+        { $inc: { seq: 1 } },
+        { new: true, upsert: true }
+      );
+      const attendanceid = `ATT${String(counter.seq).padStart(3, "0")}`;
+
+      // employee list: optional attendancestatus, default ""
+      const finalEmployees = (employee?.length ? employee : allocation.employee).map((e) => ({
+        employeeid: e.employeeid,
+        employeename: e.employeename,
+        attendancestatus: ["Present", "Absent", "Leave"].includes(e.attendancestatus)
+          ? e.attendancestatus
+          : "", // default empty
+      }));
+
+      const attendance = new Attendance({
+        attendanceid,
+        allocationid,
+        attendanceDate,
+        fromDate: allocation.fromDate,
+        toDate: allocation.toDate,
+        supervisorid: allocation.supervisorid,
+        supervisorname: allocation.supervisorname,
+        projectid: allocation.projectid,
+        projectname: allocation.projectname,
+        siteid: allocation.siteid,
+        sitename: allocation.sitename,
+        employee: finalEmployees,
       });
 
-      if (alreadyMarked) {
-        return res.status(400).json({
-          status: false,
-          message: "Attendance already marked for today",
-        });
-      }
-
-      const attendance = new Attendance(req.body);
       const saved = await attendance.save();
 
       res.json({
         status: true,
-        message: "Attendance saved successfully",
+        message: "Attendance created successfully",
         data: saved,
       });
     } catch (err) {
-      res.status(500).json({
-        status: false,
-        message: err.message,
-      });
+      if (err.code === 11000) {
+        return res.status(409).json({
+          status: false,
+          message: "Attendance already marked for this allocation & date",
+        });
+      }
+      res.status(500).json({ status: false, message: "Server error", error: err.message });
     }
   });
+
+  
+
 
   // 📄 GET ALL ATTENDANCE
   router.post("/getAll", verifyToken, async (req, res) => {
