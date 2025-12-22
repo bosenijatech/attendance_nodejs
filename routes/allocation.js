@@ -57,21 +57,8 @@ module.exports = (JWT_SECRET) => {
     }
   });
 
-  // 🟡 GET ALL ALLOCATIONS
-  // router.get("/getAllAllocations", verifyToken, async (req, res) => {
-  //   try {
-  //     const data = await Allocation.find().sort({ id: 1 });
-  //     res.json({ status: true, data });
-  //   } catch (err) {
-  //     console.error("❌ Error fetching allocations:", err);
-  //     res.status(500).json({
-  //       status: false,
-  //       message: "Error fetching data",
-  //       error: err.message,
-  //     });
-  //   }
-  // });
-  
+ 
+  //get
 
 router.post("/getAllAllocations", verifyToken, async (req, res) => {
   try {

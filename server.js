@@ -29,7 +29,8 @@ app.use("/", siteRoutes(JWT_SECRET));
 app.use("/", projectRoutes(JWT_SECRET));
 app.use("/", allocationRoutes(JWT_SECRET));
 app.use("/mobile/supervisor", mobileSupervisorRoutes);
-app.use("/attendance", attendanceRoutes);
+app.use("/attendance", attendanceRoutes(JWT_SECRET));
+
  
 // Default Route
 app.get("/", (req, res) => res.send("🚀 Attendance Node.js API is running successfully!"));
