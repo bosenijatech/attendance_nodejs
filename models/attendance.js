@@ -1,56 +1,41 @@
 const mongoose = require("mongoose");
-const Counter = require("./Counter");
+const Counter = require("./Counter"); // Auto-increment counter schema
 
 const AttendanceSchema = new mongoose.Schema({
-  attendanceid: String,
+  id: { type: String },
+  attendanceid: { type: String }, // e.g. ATT001, ATT002
 
-  // ✅ IMPORTANT – SAME NAME EVERYWHERE
+  allocationid: { type: String, required: true }, // Link to Allocation
+  projectid: { type: String },
+  siteid: { type: String },
+
   attendancedate: { type: String, required: true }, // YYYY-MM-DD
 
-  createdby: { type: String, required: true },
-
-  allocationid: { type: String, required: true },
-
-  supervisorid: String,
-  supervisorname: String,
-
-  projectid: String,
-  projectname: String,
-
-  siteid: String,
-  sitename: String,
-
-  fromDate: Date,
-  toDate: Date,
+  supervisorid: { type: String, required: true },
+  supervisorname: { type: String, required: true },
 
   employee: [
     {
       _id: false,
-      id: String,
-      employeeid: String,
-      employeename: String,
+      id: { type: String }, // internal id
+      employeeid: { type: String, required: true },
+      employeename: { type: String, required: true },
       attendancestatus: {
         type: String,
         enum: ["Present", "Absent", "Leave"],
-        default: "",
+        default: "Absent",
       },
     },
   ],
 
+  status: { type: String, default: "Active" },
+  syncstatus: { type: Number, default: 0 },
+
   createdAt: { type: Date, default: Date.now },
+  createdby: { type: String },
 });
 
-/* ✅ UNIQUE INDEX – CORRECT FIELD NAME */
-AttendanceSchema.index(
-  {
-    allocationid: 1,
-    "employee.employeeid": 1,
-    attendancedate: 1,
-  },
-  { unique: true }
-);
-
-// Auto attendanceid
+// 🔢 Auto-increment id and attendanceid
 AttendanceSchema.pre("save", async function (next) {
   if (this.isNew) {
     const counter = await Counter.findOneAndUpdate(
@@ -58,9 +43,28 @@ AttendanceSchema.pre("save", async function (next) {
       { $inc: { seq: 1 } },
       { new: true, upsert: true }
     );
-    this.attendanceid = `ATT${String(counter.seq).padStart(5, "0")}`;
+    this.id = String(counter.seq);
+    this.attendanceid = `ATT${String(counter.seq).padStart(3, "0")}`;
   }
+
+  // Assign auto id for employee array
+  if (this.employee && this.employee.length > 0) {
+    this.employee = this.employee.map((emp, index) => ({
+      ...emp,
+      id: String(index + 1),
+    }));
+  }
+
   next();
+});
+
+// Hide _id and __v from JSON
+AttendanceSchema.set("toJSON", {
+  transform: (doc, ret) => {
+    delete ret._id;
+    delete ret.__v;
+    return ret;
+  },
 });
 
 module.exports = mongoose.model("Attendance", AttendanceSchema);
