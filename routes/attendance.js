@@ -101,12 +101,12 @@ module.exports = (JWT_SECRET) => {
           return res.status(400).json({ status: false, message: "Supervisor id required" });
         }
   
-        // 🔒 Only allocations that have supervisorid and match
+        // 🔒 Only Attendance that have supervisorid and match
         filter = { supervisorid: id };
       }
-      // Admin → empty filter → all allocations
+      // Admin → empty filter → all Attendance
   
-      const data = await Allocation.find(filter).sort({ id: 1 });
+      const data = await Attendance.find(filter).sort({ id: 1 });
   
       res.json({ status: true, data });
     } catch (err) {
