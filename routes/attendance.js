@@ -142,27 +142,14 @@ module.exports = (JWT_SECRET) => {
       if (!allocationid || !employee || !employee.length)
         return res.status(400).json({ status: false, message: "allocationid and employee list required" });
 
-      // Validate attendancestatus
-      const validStatuses = ["Present", "Absent", "Leave", ""];
-      for (const e of employee) {
-        if (!validStatuses.includes(e.attendancestatus)) {
-          return res.status(400).json({
-            status: false,
-            message: `Invalid attendancestatus for employee ${e.employeeid || e.id}`,
-          });
-        }
-      }
-
-      // Find Allocation
       const allocation = await Allocation.findOne({ allocationid });
       if (!allocation)
         return res.status(404).json({ status: false, message: "Allocation not found" });
 
-      // Determine attendanceDate
-      let attendanceDate = reqDate ? new Date(reqDate) : allocation.fromDate || new Date();
+      // Use provided attendanceDate or default to today
+      let attendanceDate = reqDate ? new Date(reqDate) : new Date();
       attendanceDate.setHours(0, 0, 0, 0);
 
-      // Check if Attendance exists for this date
       let attendance = await Attendance.findOne({ allocationid, attendanceDate });
 
       if (!attendance) {
@@ -174,10 +161,10 @@ module.exports = (JWT_SECRET) => {
         );
         const attendanceid = `ATT${String(counter.seq).padStart(3, "0")}`;
 
-        // Map employees from request body
+        // Map employees
         const finalEmployee = employee.map((emp, idx) => ({
           id: emp.id || String(idx + 1),
-          employeeid: emp.employeeid || `EMP${String(idx + 1).padStart(3, "0")}`,
+          employeeid: emp.employeeid,
           employeename: emp.employeename || "",
           attendancestatus: emp.attendancestatus || "",
         }));
@@ -198,7 +185,7 @@ module.exports = (JWT_SECRET) => {
           employee: finalEmployee,
         });
       } else {
-        // Update existing Attendance
+        // Update existing attendance
         employee.forEach(e => {
           const idx = attendance.employee.findIndex(emp => emp.employeeid === e.employeeid || emp.id === e.id);
           if (idx > -1) {
@@ -210,13 +197,11 @@ module.exports = (JWT_SECRET) => {
 
       await attendance.save();
 
-      // Format dates for response
+      // Response: only attendanceDate formatted, fromDate/toDate as ISO
       const responseData = {
         ...attendance.toObject(),
         attendanceDate: attendance.attendanceDate.toISOString().split('T')[0],
-        fromDate: attendance.fromDate.toISOString().split('T')[0],
-        toDate: attendance.toDate.toISOString().split('T')[0],
-        createdAt: attendance.createdAt.toISOString().split('T')[0],
+        // fromDate/toDate remain ISO format
       };
 
       res.json({ status: true, message: "Attendance marked successfully", data: responseData });
@@ -238,13 +223,11 @@ module.exports = (JWT_SECRET) => {
 
       const data = await Attendance.find(filter).sort({ attendanceDate: -1 });
 
-      // Format dates
+      // Format attendanceDate only
       const formattedData = data.map(a => ({
         ...a.toObject(),
         attendanceDate: a.attendanceDate.toISOString().split('T')[0],
-        fromDate: a.fromDate.toISOString().split('T')[0],
-        toDate: a.toDate.toISOString().split('T')[0],
-        createdAt: a.createdAt.toISOString().split('T')[0],
+        // fromDate/toDate remain ISO
       }));
 
       res.json({ status: true, data: formattedData });
