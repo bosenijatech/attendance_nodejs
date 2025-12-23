@@ -82,17 +82,15 @@
 
 // module.exports = mongoose.model("Attendance", AttendanceSchema);
 
-
 const mongoose = require("mongoose");
 
 const AttendanceSchema = new mongoose.Schema({
   attendanceid: { type: String, unique: true },
 
-  id: { type: String, required: true }, // 🔥 allocation id
+  // 🔥 allocationid only (ALLO001)
+  allocationid: { type: String, required: true },
 
   attendanceDate: { type: Date, default: Date.now },
-  fromDate: { type: Date },
-  toDate: { type: Date },
 
   supervisorid: { type: String },
   supervisorname: { type: String },
@@ -106,6 +104,7 @@ const AttendanceSchema = new mongoose.Schema({
   employee: [
     {
       _id: false,
+      id: { type: String }, // allocation employee id
       employeeid: { type: String },
       employeename: { type: String },
       attendancestatus: {
@@ -119,7 +118,7 @@ const AttendanceSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
-// 🧹 Clean response
+// clean response
 AttendanceSchema.set("toJSON", {
   transform: (doc, ret) => {
     delete ret._id;
@@ -129,4 +128,3 @@ AttendanceSchema.set("toJSON", {
 });
 
 module.exports = mongoose.model("Attendance", AttendanceSchema);
-

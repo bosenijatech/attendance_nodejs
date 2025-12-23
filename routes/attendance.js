@@ -113,8 +113,6 @@
 
 // module.exports = router;   // 👈 THIS ALSO REQUIRED
 
-
-// routes/attendance.js
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const Attendance = require("../models/Attendance");
@@ -124,35 +122,43 @@ const Counter = require("../models/Counter");
 module.exports = (JWT_SECRET) => {
   const router = express.Router();
 
-  // 🔐 JWT Middleware
+  // 🔐 JWT middleware
   const verifyToken = (req, res, next) => {
     const authHeader = req.headers["authorization"];
-    if (!authHeader)
-      return res.status(403).json({ status: false, message: "No token provided" });
+    if (!authHeader) {
+      return res.status(403).json({
+        status: false,
+        message: "No token provided",
+      });
+    }
 
     const token = authHeader.split(" ")[1];
     jwt.verify(token, JWT_SECRET, (err, decoded) => {
-      if (err)
-        return res.status(401).json({ status: false, message: "Invalid token" });
+      if (err) {
+        return res.status(401).json({
+          status: false,
+          message: "Invalid token",
+        });
+      }
       req.user = decoded;
       next();
     });
   };
 
-  // 🟢 MARK ATTENDANCE (ONE ALLOCATION → ONE DAY)
+  // 🟢 MARK ATTENDANCE (one allocation → one day)
   router.post("/mark", verifyToken, async (req, res) => {
     try {
-      const { id } = req.body; // 🔥 allocationid = id
+      const { allocationid } = req.body;
 
-      if (!id) {
+      if (!allocationid) {
         return res.status(400).json({
           status: false,
-          message: "allocation id required",
+          message: "allocationid required",
         });
       }
 
-      // 🔍 Find allocation
-      const allocation = await Allocation.findOne({ id });
+      // 🔍 find allocation
+      const allocation = await Allocation.findOne({ allocationid });
       if (!allocation) {
         return res.status(404).json({
           status: false,
@@ -160,13 +166,13 @@ module.exports = (JWT_SECRET) => {
         });
       }
 
-      // 📅 Today date (00:00:00)
+      // 📅 today (00:00)
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      // ❌ Duplicate check (one allocation per day)
+      // ❌ duplicate check (allocation + today)
       const exists = await Attendance.findOne({
-        id,
+        allocationid,
         attendanceDate: {
           $gte: today,
           $lt: new Date(today.getTime() + 24 * 60 * 60 * 1000),
@@ -180,7 +186,7 @@ module.exports = (JWT_SECRET) => {
         });
       }
 
-      // 🔢 Generate attendanceid
+      // 🔢 generate attendanceid
       const counter = await Counter.findOneAndUpdate(
         { name: "Attendance" },
         { $inc: { seq: 1 } },
@@ -189,26 +195,29 @@ module.exports = (JWT_SECRET) => {
 
       const attendanceid = `ATT${String(counter.seq).padStart(3, "0")}`;
 
-      // 👷 Employees from allocation
+      // 👷 employees from allocation
       const employees = allocation.employee.map(emp => ({
+        id: emp.id,
         employeeid: emp.employeeid,
         employeename: emp.employeename,
         attendancestatus: "",
       }));
 
-      // 📝 Create attendance
+      // 📝 save attendance
       const attendance = new Attendance({
         attendanceid,
-        id, // allocation id
+        allocationid,
         attendanceDate: today,
-        fromDate: allocation.fromDate,
-        toDate: allocation.toDate,
+
         supervisorid: allocation.supervisorid,
         supervisorname: allocation.supervisorname,
+
         projectid: allocation.projectid,
         projectname: allocation.projectname,
+
         siteid: allocation.siteid,
         sitename: allocation.sitename,
+
         employee: employees,
       });
 
@@ -229,24 +238,23 @@ module.exports = (JWT_SECRET) => {
     }
   });
 
-  // 📄 GET ALL ATTENDANCE BY ALLOCATION ID
+  // 📄 GET ALL ATTENDANCE (ELLAME VARUM)
   router.post("/getAll", verifyToken, async (req, res) => {
     try {
-      const { id } = req.body; // allocation id
+      const { allocationid } = req.body;
 
-      if (!id) {
-        return res.status(400).json({
-          status: false,
-          message: "allocation id required",
-        });
+      let filter = {};
+      if (allocationid) {
+        filter.allocationid = allocationid;
       }
 
-      const data = await Attendance.find({ id })
+      const attendanceList = await Attendance.find(filter)
         .sort({ attendanceDate: -1 });
 
       res.json({
         status: true,
-        data,
+        count: attendanceList.length,
+        data: attendanceList,
       });
 
     } catch (err) {
