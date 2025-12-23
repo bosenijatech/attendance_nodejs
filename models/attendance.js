@@ -84,23 +84,28 @@
 
 
 const mongoose = require("mongoose");
-const Counter = require("./Counter");
 
 const AttendanceSchema = new mongoose.Schema({
   attendanceid: { type: String, unique: true },
-  allocationid: { type: String, required: true },
+
+  id: { type: String, required: true }, // 🔥 allocation id
+
   attendanceDate: { type: Date, default: Date.now },
-  fromDate: { type: Date, default: Date.now },
-  toDate: { type: Date, default: Date.now },
+  fromDate: { type: Date },
+  toDate: { type: Date },
+
   supervisorid: { type: String },
   supervisorname: { type: String },
+
   projectid: { type: String },
   projectname: { type: String },
+
   siteid: { type: String },
   sitename: { type: String },
+
   employee: [
     {
-      _id: false, // 🔹 prevent automatic _id for subdocuments
+      _id: false,
       employeeid: { type: String },
       employeename: { type: String },
       attendancestatus: {
@@ -110,22 +115,18 @@ const AttendanceSchema = new mongoose.Schema({
       },
     },
   ],
+
   createdAt: { type: Date, default: Date.now },
 });
 
-// 🔹 Remove top-level _id, __v and nested _id (if any)
+// 🧹 Clean response
 AttendanceSchema.set("toJSON", {
   transform: (doc, ret) => {
     delete ret._id;
     delete ret.__v;
-    if (ret.employee && Array.isArray(ret.employee)) {
-      ret.employee = ret.employee.map(({ _id, ...rest }) => rest);
-    }
     return ret;
   },
 });
 
-// 🔹 Prevent same allocation + same employee + same date duplication
-AttendanceSchema.index({ allocationid: 1, "employee.employeeid": 1, attendanceDate: 1 }, { unique: true });
-
 module.exports = mongoose.model("Attendance", AttendanceSchema);
+
