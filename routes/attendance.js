@@ -112,7 +112,6 @@
 
 
 // module.exports = router;   // 👈 THIS ALSO REQUIRED
-
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const Attendance = require("../models/Attendance");
@@ -127,34 +126,28 @@ module.exports = (JWT_SECRET) => {
     const authHeader = req.headers["authorization"];
     if (!authHeader)
       return res.status(403).json({ status: false, message: "No token provided" });
-
     const token = authHeader.split(" ")[1];
     jwt.verify(token, JWT_SECRET, (err, decoded) => {
-      if (err)
-        return res.status(401).json({ status: false, message: "Invalid token" });
+      if (err) return res.status(401).json({ status: false, message: "Invalid token" });
       req.user = decoded;
       next();
     });
   };
 
-  // --- MARK ATTENDANCE ---
+  // --- MARK / CREATE ATTENDANCE ---
   router.post("/mark", verifyToken, async (req, res) => {
     try {
       const { allocationid, employee } = req.body;
 
-      if (!allocationid || !employee || !employee.length) {
-        return res
-          .status(400)
-          .json({ status: false, message: "allocationid and employee list required" });
-      }
+      if (!allocationid || !employee || !employee.length)
+        return res.status(400).json({ status: false, message: "allocationid and employee list required" });
 
-      // Validate enum values
       const validStatuses = ["Present", "Absent", "Leave", ""];
       for (const e of employee) {
         if (!validStatuses.includes(e.attendancestatus)) {
           return res.status(400).json({
             status: false,
-            message: `Invalid attendancestatus for employee ${e.employeeid}. Must be Present, Absent, Leave, or ""`,
+            message: `Invalid attendancestatus for employee ${e.employeeid || e.id}`,
           });
         }
       }
@@ -164,19 +157,20 @@ module.exports = (JWT_SECRET) => {
       if (!allocation)
         return res.status(404).json({ status: false, message: "Allocation not found" });
 
-      // Handle today's date
+      // Today's date range
       const startOfDay = new Date();
       startOfDay.setHours(0, 0, 0, 0);
       const endOfDay = new Date();
       endOfDay.setHours(23, 59, 59, 999);
 
+      // Check if Attendance exists for today
       let attendance = await Attendance.findOne({
         allocationid,
         attendanceDate: { $gte: startOfDay, $lte: endOfDay },
       });
 
-      // Create new Attendance if not exists
       if (!attendance) {
+        // Generate new attendanceid
         const counter = await Counter.findOneAndUpdate(
           { name: "Attendance" },
           { $inc: { seq: 1 } },
@@ -184,11 +178,12 @@ module.exports = (JWT_SECRET) => {
         );
         const attendanceid = `ATT${String(counter.seq).padStart(3, "0")}`;
 
-        const employees = allocation.employee.map((emp) => ({
-          id: emp.id,
-          employeeid: emp.employeeid,
-          employeename: emp.employeename,
-          attendancestatus: "",
+        // Create Attendance using request body employees
+        const finalEmployee = employee.map((emp, idx) => ({
+          id: emp.id || String(idx + 1),
+          employeeid: emp.employeeid || `EMP${String(idx + 1).padStart(3, "0")}`,
+          employeename: emp.employeename || "",
+          attendancestatus: emp.attendancestatus || "",
         }));
 
         attendance = new Attendance({
@@ -204,15 +199,18 @@ module.exports = (JWT_SECRET) => {
           projectname: allocation.projectname,
           siteid: allocation.siteid,
           sitename: allocation.sitename,
-          employee: employees,
+          employee: finalEmployee,
+        });
+      } else {
+        // Update existing Attendance using request body
+        employee.forEach(e => {
+          const idx = attendance.employee.findIndex(emp => emp.employeeid === e.employeeid || emp.id === e.id);
+          if (idx > -1) {
+            attendance.employee[idx].attendancestatus = e.attendancestatus;
+            attendance.employee[idx].employeename = e.employeename || attendance.employee[idx].employeename;
+          }
         });
       }
-
-      // Update only provided employees
-      employee.forEach((e) => {
-        const idx = attendance.employee.findIndex((emp) => emp.employeeid === e.employeeid);
-        if (idx > -1) attendance.employee[idx].attendancestatus = e.attendancestatus;
-      });
 
       await attendance.save();
 
@@ -228,23 +226,16 @@ module.exports = (JWT_SECRET) => {
     try {
       const { id, type } = req.body;
       let filter = {};
-
       if (type === "Supervisor") {
-        if (!id)
-          return res.status(400).json({ status: false, message: "Supervisor id required" });
+        if (!id) return res.status(400).json({ status: false, message: "Supervisor id required" });
         filter = { supervisorid: id };
       }
 
       const data = await Attendance.find(filter).sort({ attendanceDate: -1 });
-
       res.json({ status: true, data });
     } catch (err) {
       console.error(err);
-      res.status(500).json({
-        status: false,
-        message: "Error fetching attendance",
-        error: err.message,
-      });
+      res.status(500).json({ status: false, message: "Error fetching attendance", error: err.message });
     }
   });
 
