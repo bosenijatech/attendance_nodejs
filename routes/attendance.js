@@ -1,7 +1,7 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const Attendance = require("../models/Attendance");
-const Allocation = require("../models/Allocation");
+
 
 module.exports = (JWT_SECRET) => {
   const router = express.Router();
