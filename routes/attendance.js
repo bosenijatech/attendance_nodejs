@@ -20,69 +20,73 @@ module.exports = (JWT_SECRET) => {
 
   // ✅ MARK ATTENDANCE
  router.post("/mark", verifyToken, async (req, res) => {
-  try {
-    const { allocationid, createdby, employee } = req.body;
+    try {
+      const { allocationid, attendancedate, createdby, employee } = req.body;
 
-    if (!allocationid)
-      return res.status(400).json({
-        status: false,
-        message: "allocationid required",
+      // 🔒 Required fields check
+      if (!allocationid || !attendancedate) {
+        return res.status(400).json({
+          status: false,
+          message: "allocationid & attendancedate are required",
+        });
+      }
+
+      const allocation = await Allocation.findOne({ allocationid });
+      if (!allocation) {
+        return res.status(404).json({
+          status: false,
+          message: "Allocation not found",
+        });
+      }
+
+      const attendance = new Attendance({
+        allocationid,
+        attendancedate,
+        createdby,
+
+        supervisorid: allocation.supervisorid,
+        supervisorname: allocation.supervisorname,
+        projectid: allocation.projectid,
+        projectname: allocation.projectname,
+        siteid: allocation.siteid,
+        sitename: allocation.sitename,
+        fromDate: allocation.fromDate,
+        toDate: allocation.toDate,
+
+        employee: allocation.employee.map((emp) => {
+          const upd = employee.find(
+            (e) => e.employeeid === emp.employeeid
+          );
+
+          return {
+            id: emp.id,
+            employeeid: emp.employeeid,
+            employeename: emp.employeename,
+            attendancestatus: upd ? upd.attendancestatus : "Absent",
+          };
+        }),
       });
 
-    const allocation = await Allocation.findOne({ allocationid });
-    if (!allocation)
-      return res.status(404).json({
-        status: false,
-        message: "Allocation not found",
+      await attendance.save();
+
+      res.json({
+        status: true,
+        message: "Attendance marked successfully",
       });
+    } catch (err) {
+      if (err.code === 11000) {
+        return res.status(400).json({
+          status: false,
+          message: "Attendance already marked for this date",
+        });
+      }
 
-    const attendanceDate = new Date().toISOString().split("T")[0];
-
-    const attendance = new Attendance({
-      allocationid,
-      supervisorid: allocation.supervisorid,
-      supervisorname: allocation.supervisorname,
-      projectid: allocation.projectid,
-      projectname: allocation.projectname,
-      siteid: allocation.siteid,
-      sitename: allocation.sitename,
-      fromDate: allocation.fromDate,
-      toDate: allocation.toDate,
-      attendanceDate,
-      createdby,
-
-      employee: allocation.employee.map((emp) => {
-        const upd = employee.find(
-          (e) => e.employeeid === emp.employeeid
-        );
-        return {
-          id: emp.id,
-          employeeid: emp.employeeid,
-          employeename: emp.employeename,
-          attendancestatus: upd ? upd.attendancestatus : "Absent",
-        };
-      }),
-    });
-
-    await attendance.save();
-
-    res.json({
-      status: true,
-      message: "Attendance marked successfully",
-    });
-  } catch (err) {
-    if (err.code === 11000) {
-      return res.status(400).json({
+      res.status(500).json({
         status: false,
-        message: "Attendance already marked for today",
+        error: err.message,
       });
     }
-    res.status(500).json({
-      status: false,
-      error: err.message,
-    });
-  }
-});
+  });
 
 
   // GET ALL

@@ -4,7 +4,7 @@ const Counter = require("./Counter");
 const AttendanceSchema = new mongoose.Schema({
   attendanceid: String,
 
-  // ✅ IMPORTANT – SAME NAME EVERYWHERE
+  // ❗ SAME NAME EVERYWHERE
   attendancedate: { type: String, required: true }, // YYYY-MM-DD
 
   createdby: { type: String, required: true },
@@ -32,7 +32,7 @@ const AttendanceSchema = new mongoose.Schema({
       attendancestatus: {
         type: String,
         enum: ["Present", "Absent", "Leave"],
-        default: "",
+        default: "Absent",
       },
     },
   ],
@@ -40,7 +40,7 @@ const AttendanceSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
-/* ✅ UNIQUE INDEX – CORRECT FIELD NAME */
+// ✅ Prevent duplicate attendance for same employee on same date
 AttendanceSchema.index(
   {
     allocationid: 1,
