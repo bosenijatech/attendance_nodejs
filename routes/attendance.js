@@ -90,34 +90,42 @@ module.exports = (JWT_SECRET) => {
 
 
   // GET ALL
-  router.post("/getAll", verifyToken, async (req, res) => {
-    try {
-      const { id, type } = req.body;
-  
-      let filter = {};
-  
-      if (type === "Supervisor") {
-        if (!id) {
-          return res.status(400).json({ status: false, message: "Supervisor id required" });
-        }
-  
-        // 🔒 Only Attendance that have supervisorid and match
-        filter = { supervisorid: id };
+ router.post("/getAll", verifyToken, async (req, res) => {
+  try {
+    const { id, type } = req.body;
+
+    let filter = {};
+
+    if (type === "Supervisor") {
+      if (!id) {
+        return res.status(400).json({
+          status: false,
+          message: "Supervisor id required",
+        });
       }
-      // Admin → empty filter → all Attendance
-  
-      const data = await Attendance.find(filter).sort({ id: 1 });
-  
-      res.json({ status: true, data });
-    } catch (err) {
-      console.error("❌ Error fetching Attendance:", err);
-      res.status(500).json({
-        status: false,
-        message: "Error fetching Attendance",
-        error: err.message,
-      });
+
+      filter = { supervisorid: id };
     }
-  });
+
+    // ✅ FETCH ONLY ATTENDANCE
+    const data = await Attendance.find(filter)
+      .sort({ createdAt: -1 });
+
+    res.json({
+      status: true,
+      count: data.length,
+      data,
+    });
+  } catch (err) {
+    console.error("❌ Error fetching Attendance:", err);
+    res.status(500).json({
+      status: false,
+      message: "Error fetching Attendance",
+      error: err.message,
+    });
+  }
+});
+
 
   return router;
 };
