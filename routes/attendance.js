@@ -26,7 +26,7 @@ module.exports = (JWT_SECRET) => {
   };
 
   // 🟢 MARK ATTENDANCE
-  router.post("/markAttendance", verifyToken, async (req, res) => {
+  router.post("/mark", verifyToken, async (req, res) => {
     try {
       const { allocationid, createdby, employee } = req.body;
 
@@ -82,7 +82,7 @@ module.exports = (JWT_SECRET) => {
   });
 
   // 📝 GET ALL ATTENDANCE
-  router.post("/getAllAttendance", verifyToken, async (req, res) => {
+  router.post("/getAll", verifyToken, async (req, res) => {
     try {
       const { id, type } = req.body;
       let filter = {};
