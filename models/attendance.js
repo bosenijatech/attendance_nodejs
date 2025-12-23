@@ -82,47 +82,50 @@
 
 // module.exports = mongoose.model("Attendance", AttendanceSchema);
 
+
 const mongoose = require("mongoose");
+const Counter = require("./Counter");
 
-const AttendanceSchema = new mongoose.Schema(
-  {
-    attendanceid: { type: String, required: true },
-    allocationid: { type: String, required: true },
-
-    attendanceDate: { type: String, required: true },
-
-    fromDate: { type: String },
-    toDate: { type: String },
-
-    supervisorid: { type: String },
-    supervisorname: { type: String },
-
-    projectid: { type: String },
-    projectname: { type: String },
-
-    siteid: { type: String },
-    sitename: { type: String },
-
-    employee: [
-      {
-        _id: false,
-        employeeid: { type: String },
-        employeename: { type: String },
-        attendancestatus: {
-          type: String,
-          enum: ["Present", "Absent", "Leave", ""], // ✅ enum + empty string allowed
-          default: "", // default empty
-        },
+const AttendanceSchema = new mongoose.Schema({
+  attendanceid: { type: String, unique: true },
+  allocationid: { type: String, required: true },
+  attendanceDate: { type: Date, default: Date.now },
+  fromDate: { type: Date, default: Date.now },
+  toDate: { type: Date, default: Date.now },
+  supervisorid: { type: String },
+  supervisorname: { type: String },
+  projectid: { type: String },
+  projectname: { type: String },
+  siteid: { type: String },
+  sitename: { type: String },
+  employee: [
+    {
+      _id: false, // 🔹 prevent automatic _id for subdocuments
+      employeeid: { type: String },
+      employeename: { type: String },
+      attendancestatus: {
+        type: String,
+        enum: ["Present", "Absent", "Leave", ""],
+        default: "",
       },
-    ],
-  },
-  { timestamps: true }
-);
+    },
+  ],
+  createdAt: { type: Date, default: Date.now },
+});
 
-// prevent duplicate attendance for same allocation + date
-AttendanceSchema.index(
-  { allocationid: 1, attendanceDate: 1 },
-  { unique: true }
-);
+// 🔹 Remove top-level _id, __v and nested _id (if any)
+AttendanceSchema.set("toJSON", {
+  transform: (doc, ret) => {
+    delete ret._id;
+    delete ret.__v;
+    if (ret.employee && Array.isArray(ret.employee)) {
+      ret.employee = ret.employee.map(({ _id, ...rest }) => rest);
+    }
+    return ret;
+  },
+});
+
+// 🔹 Prevent same allocation + same employee + same date duplication
+AttendanceSchema.index({ allocationid: 1, "employee.employeeid": 1, attendanceDate: 1 }, { unique: true });
 
 module.exports = mongoose.model("Attendance", AttendanceSchema);
