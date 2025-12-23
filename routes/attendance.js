@@ -149,15 +149,13 @@ module.exports = (JWT_SECRET) => {
       if (!allocation)
         return res.status(404).json({ status: false, message: "Allocation not found" });
 
-      // Attendance date defaults to today
       const attendanceDate = reqDate ? new Date(reqDate) : new Date();
       attendanceDate.setHours(0, 0, 0, 0);
 
-      // Check if attendance already exists for this allocation & date
+      // Check if attendance already exists
       let attendance = await Attendance.findOne({ allocationid, attendanceDate });
 
       if (!attendance) {
-        // Generate new Attendance ID
         const counter = await Counter.findOneAndUpdate(
           { name: "Attendance" },
           { $inc: { seq: 1 } },
@@ -165,7 +163,6 @@ module.exports = (JWT_SECRET) => {
         );
         const attendanceid = `ATT${String(counter.seq).padStart(3, "0")}`;
 
-        // Map employees from request body
         const finalEmployee = employee.map((emp, idx) => ({
           id: emp.id || String(idx + 1),
           employeeid: emp.employeeid,
@@ -189,7 +186,6 @@ module.exports = (JWT_SECRET) => {
           employee: finalEmployee,
         });
       } else {
-        // Update statuses if attendance already exists
         employee.forEach((e) => {
           const idx = attendance.employee.findIndex(
             (emp) => emp.employeeid === e.employeeid
@@ -211,30 +207,57 @@ module.exports = (JWT_SECRET) => {
     }
   });
 
-  // 🟢 GET ALL ATTENDANCE
+  // 🟢 GET ATTENDANCE in Allocation Format
   router.post("/getAll", verifyToken, async (req, res) => {
     try {
       const { id, type } = req.body;
-      let filter = {};
+      let allocationFilter = {};
 
       if (type === "Supervisor") {
         if (!id)
           return res.status(400).json({ status: false, message: "Supervisor id required" });
 
-        filter = { supervisorid: id };
+        allocationFilter = { supervisorid: id };
       }
-      // Admin → empty filter → all attendances
 
-      const data = await Attendance.find(filter).sort({ attendanceDate: -1 });
+      const allocations = await Allocation.find(allocationFilter).sort({ id: 1 });
+      const attendanceData = await Attendance.find({});
+
+      // Map attendance into allocation structure
+      const data = allocations.map((alloc) => {
+        const att = attendanceData.find((a) => a.allocationid === alloc.allocationid);
+
+        const employees = alloc.employee.map((emp) => {
+          const attEmp = att?.employee.find((e) => e.employeeid === emp.employeeid);
+          return {
+            id: emp.id,
+            employeeid: emp.employeeid,
+            employeename: emp.employeename,
+            attendancestatus: attEmp?.attendancestatus || "",
+          };
+        });
+
+        return {
+          id: alloc.id,
+          allocationid: alloc.allocationid,
+          supervisorid: alloc.supervisorid,
+          supervisorname: alloc.supervisorname,
+          employee: employees,
+          projectname: alloc.projectname,
+          sitename: alloc.sitename,
+          fromDate: alloc.fromDate,
+          toDate: alloc.toDate,
+          status: alloc.status,
+          syncstatus: alloc.syncstatus,
+          currentDate: alloc.currentDate,
+          createdAt: alloc.createdAt,
+        };
+      });
 
       res.json({ status: true, data });
     } catch (err) {
       console.error("❌ Error fetching attendance:", err);
-      res.status(500).json({
-        status: false,
-        message: "Error fetching attendance",
-        error: err.message,
-      });
+      res.status(500).json({ status: false, message: "Server error", error: err.message });
     }
   });
 
