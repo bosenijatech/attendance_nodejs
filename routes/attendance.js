@@ -110,8 +110,6 @@
 //   }
 // });
 
-
-// module.exports = router;   // 👈 THIS ALSO REQUIRED
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const Attendance = require("../models/Attendance");
@@ -142,6 +140,7 @@ module.exports = (JWT_SECRET) => {
       if (!allocationid || !employee || !employee.length)
         return res.status(400).json({ status: false, message: "allocationid and employee list required" });
 
+      // Validate attendancestatus values
       const validStatuses = ["Present", "Absent", "Leave", ""];
       for (const e of employee) {
         if (!validStatuses.includes(e.attendancestatus)) {
@@ -163,7 +162,7 @@ module.exports = (JWT_SECRET) => {
       const endOfDay = new Date();
       endOfDay.setHours(23, 59, 59, 999);
 
-      // Check if Attendance exists for today
+      // Check if Attendance already exists for today
       let attendance = await Attendance.findOne({
         allocationid,
         attendanceDate: { $gte: startOfDay, $lte: endOfDay },
@@ -178,7 +177,7 @@ module.exports = (JWT_SECRET) => {
         );
         const attendanceid = `ATT${String(counter.seq).padStart(3, "0")}`;
 
-        // Create Attendance using request body employees
+        // Create Attendance using request body employees directly
         const finalEmployee = employee.map((emp, idx) => ({
           id: emp.id || String(idx + 1),
           employeeid: emp.employeeid || `EMP${String(idx + 1).padStart(3, "0")}`,
