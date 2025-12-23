@@ -110,6 +110,7 @@
 //   }
 // });
 
+
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const Attendance = require("../models/Attendance");
@@ -140,7 +141,7 @@ module.exports = (JWT_SECRET) => {
       if (!allocationid || !employee || !employee.length)
         return res.status(400).json({ status: false, message: "allocationid and employee list required" });
 
-      // Validate attendancestatus values
+      // Validate attendancestatus
       const validStatuses = ["Present", "Absent", "Leave", ""];
       for (const e of employee) {
         if (!validStatuses.includes(e.attendancestatus)) {
@@ -162,7 +163,7 @@ module.exports = (JWT_SECRET) => {
       const endOfDay = new Date();
       endOfDay.setHours(23, 59, 59, 999);
 
-      // Check if Attendance already exists for today
+      // Check if Attendance exists for today
       let attendance = await Attendance.findOne({
         allocationid,
         attendanceDate: { $gte: startOfDay, $lte: endOfDay },
@@ -177,7 +178,7 @@ module.exports = (JWT_SECRET) => {
         );
         const attendanceid = `ATT${String(counter.seq).padStart(3, "0")}`;
 
-        // Create Attendance using request body employees directly
+        // Use request body employees directly
         const finalEmployee = employee.map((emp, idx) => ({
           id: emp.id || String(idx + 1),
           employeeid: emp.employeeid || `EMP${String(idx + 1).padStart(3, "0")}`,
@@ -201,7 +202,7 @@ module.exports = (JWT_SECRET) => {
           employee: finalEmployee,
         });
       } else {
-        // Update existing Attendance using request body
+        // Update existing Attendance
         employee.forEach(e => {
           const idx = attendance.employee.findIndex(emp => emp.employeeid === e.employeeid || emp.id === e.id);
           if (idx > -1) {
@@ -213,7 +214,16 @@ module.exports = (JWT_SECRET) => {
 
       await attendance.save();
 
-      res.json({ status: true, message: "Attendance marked successfully", data: attendance });
+      // Format dates for response
+      const responseData = {
+        ...attendance.toObject(),
+        attendanceDate: attendance.attendanceDate.toISOString().split('T')[0],
+        fromDate: attendance.fromDate.toISOString().split('T')[0],
+        toDate: attendance.toDate.toISOString().split('T')[0],
+        createdAt: attendance.createdAt.toISOString().split('T')[0],
+      };
+
+      res.json({ status: true, message: "Attendance marked successfully", data: responseData });
     } catch (err) {
       console.error(err);
       res.status(500).json({ status: false, message: "Server error", error: err.message });
@@ -231,7 +241,17 @@ module.exports = (JWT_SECRET) => {
       }
 
       const data = await Attendance.find(filter).sort({ attendanceDate: -1 });
-      res.json({ status: true, data });
+
+      // Format dates for response
+      const formattedData = data.map(a => ({
+        ...a.toObject(),
+        attendanceDate: a.attendanceDate.toISOString().split('T')[0],
+        fromDate: a.fromDate.toISOString().split('T')[0],
+        toDate: a.toDate.toISOString().split('T')[0],
+        createdAt: a.createdAt.toISOString().split('T')[0],
+      }));
+
+      res.json({ status: true, data: formattedData });
     } catch (err) {
       console.error(err);
       res.status(500).json({ status: false, message: "Error fetching attendance", error: err.message });
