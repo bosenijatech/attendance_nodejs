@@ -100,7 +100,7 @@ const AttendanceSchema = new mongoose.Schema({
   employee: [
     {
       _id: false,
-      id: { type: String }, // allocation employee id
+      id: { type: String },
       employeeid: { type: String },
       employeename: { type: String },
       attendancestatus: {
@@ -113,7 +113,7 @@ const AttendanceSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
-// clean response
+// Clean JSON output
 AttendanceSchema.set("toJSON", {
   transform: (doc, ret) => {
     delete ret._id;

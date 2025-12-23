@@ -113,7 +113,6 @@
 
 // module.exports = router;   // 👈 THIS ALSO REQUIRED
 
-
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const Attendance = require("../models/Attendance");
@@ -160,14 +159,14 @@ module.exports = (JWT_SECRET) => {
         }
       }
 
+      // Find Allocation
       const allocation = await Allocation.findOne({ allocationid });
       if (!allocation)
         return res.status(404).json({ status: false, message: "Allocation not found" });
 
-      // --- HANDLE ATTENDANCE DATE ---
+      // Handle today's date
       const startOfDay = new Date();
       startOfDay.setHours(0, 0, 0, 0);
-
       const endOfDay = new Date();
       endOfDay.setHours(23, 59, 59, 999);
 
@@ -176,14 +175,13 @@ module.exports = (JWT_SECRET) => {
         attendanceDate: { $gte: startOfDay, $lte: endOfDay },
       });
 
-      // If attendance doesn't exist, create new
+      // Create new Attendance if not exists
       if (!attendance) {
         const counter = await Counter.findOneAndUpdate(
           { name: "Attendance" },
           { $inc: { seq: 1 } },
           { new: true, upsert: true }
         );
-
         const attendanceid = `ATT${String(counter.seq).padStart(3, "0")}`;
 
         const employees = allocation.employee.map((emp) => ({
@@ -196,7 +194,7 @@ module.exports = (JWT_SECRET) => {
         attendance = new Attendance({
           attendanceid,
           allocationid,
-          attendanceDate: new Date(), // today
+          attendanceDate: new Date(),
           fromDate: allocation.fromDate,
           toDate: allocation.toDate,
           createdby: allocation.supervisorname,
@@ -212,19 +210,13 @@ module.exports = (JWT_SECRET) => {
 
       // Update only provided employees
       employee.forEach((e) => {
-        const idx = attendance.employee.findIndex(
-          (emp) => emp.employeeid === e.employeeid
-        );
+        const idx = attendance.employee.findIndex((emp) => emp.employeeid === e.employeeid);
         if (idx > -1) attendance.employee[idx].attendancestatus = e.attendancestatus;
       });
 
       await attendance.save();
 
-      res.json({
-        status: true,
-        message: "Attendance marked successfully",
-        data: attendance,
-      });
+      res.json({ status: true, message: "Attendance marked successfully", data: attendance });
     } catch (err) {
       console.error(err);
       res.status(500).json({ status: false, message: "Server error", error: err.message });
@@ -235,7 +227,6 @@ module.exports = (JWT_SECRET) => {
   router.post("/getAll", verifyToken, async (req, res) => {
     try {
       const { id, type } = req.body;
-
       let filter = {};
 
       if (type === "Supervisor") {
@@ -244,11 +235,11 @@ module.exports = (JWT_SECRET) => {
         filter = { supervisorid: id };
       }
 
-      const data = await Attendance.find(filter).sort({ id: 1 });
+      const data = await Attendance.find(filter).sort({ attendanceDate: -1 });
 
       res.json({ status: true, data });
     } catch (err) {
-      console.error("❌ Error fetching attendance:", err);
+      console.error(err);
       res.status(500).json({
         status: false,
         message: "Error fetching attendance",
