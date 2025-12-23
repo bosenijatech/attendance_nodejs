@@ -122,149 +122,111 @@ const Counter = require("../models/Counter");
 module.exports = (JWT_SECRET) => {
   const router = express.Router();
 
-  // 🔐 JWT middleware
+  // JWT middleware
   const verifyToken = (req, res, next) => {
     const authHeader = req.headers["authorization"];
-    if (!authHeader) {
-      return res.status(403).json({
-        status: false,
-        message: "No token provided",
-      });
-    }
-
+    if (!authHeader) return res.status(403).json({ status: false, message: "No token provided" });
     const token = authHeader.split(" ")[1];
     jwt.verify(token, JWT_SECRET, (err, decoded) => {
-      if (err) {
-        return res.status(401).json({
-          status: false,
-          message: "Invalid token",
-        });
-      }
+      if (err) return res.status(401).json({ status: false, message: "Invalid token" });
       req.user = decoded;
       next();
     });
   };
 
-  // 🟢 MARK ATTENDANCE (one allocation → one day)
+  // Mark attendance (supervisor marks specific employees)
   router.post("/mark", verifyToken, async (req, res) => {
     try {
-      const { allocationid } = req.body;
+      const { allocationid, employee } = req.body;
 
-      if (!allocationid) {
-        return res.status(400).json({
-          status: false,
-          message: "allocationid required",
-        });
-      }
+      if (!allocationid || !employee || !employee.length)
+        return res.status(400).json({ status: false, message: "allocationid and employee list required" });
 
-      // 🔍 find allocation
       const allocation = await Allocation.findOne({ allocationid });
-      if (!allocation) {
-        return res.status(404).json({
-          status: false,
-          message: "Allocation not found",
-        });
-      }
+      if (!allocation) return res.status(404).json({ status: false, message: "Allocation not found" });
 
-      // 📅 today (00:00)
       const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      today.setHours(0,0,0,0);
 
-      // ❌ duplicate check (allocation + today)
-      const exists = await Attendance.findOne({
-        allocationid,
-        attendanceDate: {
-          $gte: today,
-          $lt: new Date(today.getTime() + 24 * 60 * 60 * 1000),
-        },
-      });
+      let attendance = await Attendance.findOne({ allocationid, attendanceDate: today });
 
-      if (exists) {
-        return res.status(409).json({
-          status: false,
-          message: "Today attendance already marked for this allocation",
+      if (!attendance) {
+        const counter = await Counter.findOneAndUpdate(
+          { name: "Attendance" },
+          { $inc: { seq: 1 } },
+          { new: true, upsert: true }
+        );
+
+        const attendanceid = `ATT${String(counter.seq).padStart(3,"0")}`;
+
+        const employees = allocation.employee.map(emp => ({
+          id: emp.id,
+          employeeid: emp.employeeid,
+          employeename: emp.employeename,
+          attendancestatus: ""
+        }));
+
+        attendance = new Attendance({
+          attendanceid,
+          allocationid,
+          attendanceDate: today,
+          fromDate: allocation.fromDate,
+          toDate: allocation.toDate,
+          createdby: allocation.supervisorname, // supervisor name
+          supervisorid: allocation.supervisorid,
+          supervisorname: allocation.supervisorname,
+          projectid: allocation.projectid,
+          projectname: allocation.projectname,
+          siteid: allocation.siteid,
+          sitename: allocation.sitename,
+          employee: employees
         });
       }
 
-      // 🔢 generate attendanceid
-      const counter = await Counter.findOneAndUpdate(
-        { name: "Attendance" },
-        { $inc: { seq: 1 } },
-        { new: true, upsert: true }
-      );
-
-      const attendanceid = `ATT${String(counter.seq).padStart(3, "0")}`;
-
-      // 👷 employees from allocation
-      const employees = allocation.employee.map(emp => ({
-        id: emp.id,
-        employeeid: emp.employeeid,
-        employeename: emp.employeename,
-        attendancestatus: "",
-      }));
-
-      // 📝 save attendance
-      const attendance = new Attendance({
-        attendanceid,
-        allocationid,
-        attendanceDate: today,
-
-        supervisorid: allocation.supervisorid,
-        supervisorname: allocation.supervisorname,
-
-        projectid: allocation.projectid,
-        projectname: allocation.projectname,
-
-        siteid: allocation.siteid,
-        sitename: allocation.sitename,
-
-        employee: employees,
+      // Update only provided employee statuses
+      employee.forEach(e => {
+        const idx = attendance.employee.findIndex(emp => emp.employeeid === e.employeeid);
+        if (idx > -1) attendance.employee[idx].attendancestatus = e.attendancestatus;
       });
 
-      const saved = await attendance.save();
+      await attendance.save();
 
-      res.json({
-        status: true,
-        message: "Attendance marked successfully",
-        data: saved,
-      });
+      res.json({ status:true, message:"Attendance marked successfully", data:attendance });
 
-    } catch (err) {
-      res.status(500).json({
-        status: false,
-        message: "Server error",
-        error: err.message,
-      });
+    } catch(err) {
+      res.status(500).json({ status:false, message:"Server error", error:err.message });
     }
   });
 
-  // 📄 GET ALL ATTENDANCE (ELLAME VARUM)
-  router.post("/getAll", verifyToken, async (req, res) => {
-    try {
-      const { allocationid } = req.body;
+  // Get all attendance
+ router.post("/getAll", verifyToken, async (req, res) => {
+  try {
+    const { id, type } = req.body;
 
-      let filter = {};
-      if (allocationid) {
-        filter.allocationid = allocationid;
+    let filter = {};
+
+    if (type === "Supervisor") {
+      if (!id) {
+        return res.status(400).json({ status: false, message: "Supervisor id required" });
       }
 
-      const attendanceList = await Attendance.find(filter)
-        .sort({ attendanceDate: -1 });
-
-      res.json({
-        status: true,
-        count: attendanceList.length,
-        data: attendanceList,
-      });
-
-    } catch (err) {
-      res.status(500).json({
-        status: false,
-        message: "Error fetching attendance",
-        error: err.message,
-      });
+      // 🔒 Only Attendance that have supervisorid and match
+      filter = { supervisorid: id };
     }
-  });
+    // Admin → empty filter → all Attendance
+
+    const data = await Attendance.find(filter).sort({ id: 1 });
+
+    res.json({ status: true, data });
+  } catch (err) {
+    console.error("❌ Error fetching attendance:", err);
+    res.status(500).json({
+      status: false,
+      message: "Error fetching attendance",
+      error: err.message,
+    });
+  }
+});
 
   return router;
 };

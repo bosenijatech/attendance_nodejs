@@ -86,21 +86,17 @@ const mongoose = require("mongoose");
 
 const AttendanceSchema = new mongoose.Schema({
   attendanceid: { type: String, unique: true },
-
-  // 🔥 allocationid only (ALLO001)
   allocationid: { type: String, required: true },
-
   attendanceDate: { type: Date, default: Date.now },
-
+  fromDate: { type: Date },
+  toDate: { type: Date },
+  createdby: { type: String }, // supervisor name
   supervisorid: { type: String },
   supervisorname: { type: String },
-
   projectid: { type: String },
   projectname: { type: String },
-
   siteid: { type: String },
   sitename: { type: String },
-
   employee: [
     {
       _id: false,
@@ -114,7 +110,6 @@ const AttendanceSchema = new mongoose.Schema({
       },
     },
   ],
-
   createdAt: { type: Date, default: Date.now },
 });
 
