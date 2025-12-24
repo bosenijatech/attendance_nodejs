@@ -60,34 +60,34 @@ module.exports = (JWT_SECRET) => {
  
   //get
 
-router.post("/getAllAllocations", verifyToken, async (req, res) => {
-  try {
-    const { id, type } = req.body;
+// router.post("/getAllAllocations", verifyToken, async (req, res) => {
+//   try {
+//     const { id, type } = req.body;
 
-    let filter = {};
+//     let filter = {};
 
-    if (type === "Supervisor") {
-      if (!id) {
-        return res.status(400).json({ status: false, message: "Supervisor id required" });
-      }
+//     if (type === "Supervisor") {
+//       if (!id) {
+//         return res.status(400).json({ status: false, message: "Supervisor id required" });
+//       }
 
-      // 🔒 Only allocations that have supervisorid and match
-      filter = { supervisorid: id };
-    }
-    // Admin → empty filter → all allocations
+//       // 🔒 Only allocations that have supervisorid and match
+//       filter = { supervisorid: id };
+//     }
+//     // Admin → empty filter → all allocations
 
-    const data = await Allocation.find(filter).sort({ id: 1 });
+//     const data = await Allocation.find(filter).sort({ id: 1 });
 
-    res.json({ status: true, data });
-  } catch (err) {
-    console.error("❌ Error fetching allocations:", err);
-    res.status(500).json({
-      status: false,
-      message: "Error fetching allocations",
-      error: err.message,
-    });
-  }
-});
+//     res.json({ status: true, data });
+//   } catch (err) {
+//     console.error("❌ Error fetching allocations:", err);
+//     res.status(500).json({
+//       status: false,
+//       message: "Error fetching allocations",
+//       error: err.message,
+//     });
+//   }
+// });
 
 
 
